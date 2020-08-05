@@ -110,6 +110,7 @@ export default {
         convertirFecha (timeStamp) {
             return timeStamp.toDate().toISOString().substring(0,16).replace('T', ' ')
         },
+        // cuando selecciona un user
         consultarChat () {
             console.log('consultando chat');
             this.chat = []
@@ -125,13 +126,13 @@ export default {
               .orderBy('fechaEnvio')
               .onSnapshot(snapshot => {
                   snapshot.docChanges().forEach(change => {
-                      if(change.type == 'added'){//added, modified, remove
+                      if(change.type === 'added'){//added, modified, remove
                           let mensaje = change.doc.data()
                           this.chat.push(mensaje)
 
                             // sino tinene lapropiedad fechaLeido es por que no se ha leido
                           if (!mensaje.fechaLeido && mensaje.uid != this.usuario.uid) {
-                              this.marcarMensajeLeido(mensaje)
+                            //   this.marcarMensajeLeido(mensaje)
                           }
                       }
 
@@ -185,7 +186,7 @@ export default {
                                             switch (change.type) {
                                                 case 'added':
                                                         
-                                                        if(usuario.uid !== this.usuario.uid && usuario.rol == 'user'){
+                                                        if(usuario.uid != this.usuario.uid && usuario.rol == 'user'){
                                                             // add two properties
                                                             usuario.cantidadMensajes = 0
                                                             usuario.ultimoMensaje = ''
