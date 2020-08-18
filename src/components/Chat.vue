@@ -4,7 +4,7 @@
             <v-card>
                 <v-toolbar color="primary"  dark dense>
                     <v-toolbar-title>
-                        Contactos
+                        Asesores
                     </v-toolbar-title>
                 </v-toolbar>
                 <v-list two-line class="pa-0 ma-0 scroll-y overflow-y-auto" id="scroll-target" style="max-height: 640px">
@@ -48,7 +48,8 @@
                                 </v-toolbar-title>
                             </v-toolbar>
                             <v-container ref="chatContainer" class="pa-0 ma-0 scroll-y overflow-y-auto" id="scroll-target" style="max-height: 640px">
-                               <v-card-text :style="'max-height: ' + height + 'px;'" v-scroll:#scroll-target="onScroll">
+                               <v-card-text>
+
                                     <v-flex xs7 :offset-xs5="item.uid == usuario.uid" class="my-3" v-for="item in chat" :key="item.mid">
                                         <v-layout column>
                                             <div class="chat-fecha">{{ convertirFecha(item.fechaEnvio) }}</div>
@@ -110,9 +111,7 @@ export default {
         convertirFecha (timeStamp) {
             return timeStamp.toDate().toISOString().substring(0,16).replace('T', ' ')
         },
-        // cuando selecciona un user
         consultarChat () {
-            console.log('consultando chat');
             this.chat = []
             // Cada vez que consultemos n nuevo chat, detenemos el anterior
             if(this.detenerChat){
@@ -126,16 +125,23 @@ export default {
               .orderBy('fechaEnvio')
               .onSnapshot(snapshot => {
                   snapshot.docChanges().forEach(change => {
-                      if(change.type === 'added'){//added, modified, remove
+                    //   console('Change: '+ change.type)
+                      if(change.type == 'added'){//added, modified, remove
+                      console.log('add mensage: detener - consultar chat')
                           let mensaje = change.doc.data()
                           this.chat.push(mensaje)
-
+                            console.log(mensaje)
+                            // console.log('Comprando:' + mensaje.uid +' : '+ this.usuario.uid)
+                            // analizar
                             // sino tinene lapropiedad fechaLeido es por que no se ha leido
                           if (!mensaje.fechaLeido && mensaje.uid != this.usuario.uid) {
-                            //   this.marcarMensajeLeido(mensaje)
+                              console.log('marcando msj como leido:'+ this.usuario.uid );
+                              this.marcarMensajeLeido(mensaje)
                           }
                       }
 
+
+                        // El DOM esta actualizado y con  el this esta vinculado a la instancia atual
                       this.$nextTick(() => {
                           if(this.$refs.chatContainer){
                               this.$refs.chatContainer.scrollTop = 100000
@@ -148,24 +154,21 @@ export default {
               })
         },
         marcarMensajeLeido(mensaje) {
+            // coloca leido en contactos y elimina el mensaje en usuarios: verifcado
             let batch = db.batch()
 
-
             batch.update(
-                // La colletion 'contactos' almacena el mensaje del propio emisor
                 db.collection('contactos')
                     .doc(this.cid)
                     .collection('chat')
+                    // id aleatorio
                     .doc(mensaje.mid),
-                    // add
                     { fechaLeido: new Date() }
-                    
             )
-            console.log('Mensaje leido');
-            // para eliminar el anterior
+
+            //  verificar si si elimina
             batch.delete(
                 db.collection('usuarios')
-                // user currents
                     .doc(this.usuario.uid)
                     .collection('chat-sin-leer')
                     .doc(mensaje.mid)
@@ -174,97 +177,66 @@ export default {
 
             batch.commit()
         },
+        // implemenmtar escuchador: mostrar al usuario nuevo que envia un chat, instantaneamente
         async consultarUsuarios () {
-            
+            try {
                 // Accede a la colección 'usuarios'
-                 await db.collection('usuarios')
-                                    .orderBy('lastSignInTime')                
-                                    .onSnapshot( snapshot => {
-                                        snapshot.docChanges().forEach(change => {
-
-                                            let usuario = change.doc.data()
-                                            switch (change.type) {
-                                                case 'added':
-                                                        
-                                                        if(usuario.uid != this.usuario.uid && usuario.rol == 'user'){
-                                                            // add two properties
-                                                            usuario.cantidadMensajes = 0
-                                                            usuario.ultimoMensaje = ''
-                                                            this.usuarios.push(usuario)
-                                                        }
-                                                        this.consultarChatSinLeer()
-                                                    break;
-                                            
-                                                
-                                            }
-                                        } )
-                                    }, 
-              () => {
-                  this.enviarNotificacion('Ocurrió un error al consultar la lista de usuarios', 'error')
-              }) 
-              
-
-           
-        },
-        //  async consultarUsuarios () {
-        //     try {
-        //         // Accede a la colección 'usuarios'
-        //         let docs = await db.collection('usuarios')
-        //                             .orderBy('lastSignInTime')                
-        //         // Como vamos a obtener todos los documentos entonces get()
-        //                             .get()
-        //         // recorriendo cada documento
-        //         docs.forEach(doc => {
-        //             let usuario = doc.data()
-        //             // add user record to end
+                let docs = await db.collection('usuarios')
+                // Como vamos a obtener todos los documentos entonces get()
+                                    .get()
+                // recorriendo cada documento
+                docs.forEach(doc => {
+                    let usuario = doc.data()
+                    // add user record to end
                     
-        //             if(usuario.uid !== this.usuario.uid && usuario.rol == 'user'){
-        //                 // add two properties
-        //                 usuario.cantidadMensajes = 0
-        //                 usuario.ultimoMensaje = ''
-        //                 this.usuarios.push(usuario)
-        //             }
-        //         });
-        //         this.consultarChatSinLeer()
-        //     } catch (error) {
-        //         this.enviarNotificacion('Ocurrió un error al consultar la lista de usuarios', 'error')
-        //     }
-        // },
+                    if(usuario.uid !== this.usuario.uid){
+                    // if(usuario.uid !== this.usuario.uid && usuario.rol != 'user'){
+                        // add two properties
+                        usuario.cantidadMensajes = 0
+                        usuario.ultimoMensaje = ''
+                        this.usuarios.push(usuario)
+                    }
+                })
+                this.consultarChatSinLeer()
+            } catch (error) {
+                this.enviarNotificacion('Ocurrió un error al consultar la lista de usuarios', 'error')
+            }
+        },
         consultarChatSinLeer () {
-            db.collection('usuarios')
             // user current
+            db.collection('usuarios')
                 .doc(this.usuario.uid)
                 .collection('chat-sin-leer')
                 .orderBy('fechaEnvio')
                 .onSnapshot( snapshot => {
                     snapshot.docChanges().forEach(change => {//added. modified o remove
-                        let mensaje = change.doc.data()
+                    // mensage recuperado
 
+                        let mensaje = change.doc.data()
+                    // todos los mensages combinados
                         let usuario = this.usuarios.find(u => u.uid == mensaje.uid)
 
                         if (usuario) {
-                            
-                            switch (change.type) {
-                                case 'added':
-                                    console.log('A adde chat sin leer, change is: ', change.type);
-                                        usuario.cantidadMensajes++
-                                        usuario.ultimoMensaje = mensaje.texto
-                                    break;
-                            
-                                case 'removed':
-                                    console.log('R adde chat sin leer, change is: ', change.type);
-                                    usuario.cantidadMensajes--
-                                    usuario.ultimoMensaje = ''
+                         
+                         switch(change.type){
 
-                                    if(usuario.cantidadMensajes < 0){
-                                        usuario.cantidadMensajes = 0
-                                    }
-                                    break;
+                             case 'added':
+                                usuario.cantidadMensajes++
+                                usuario.ultimoMensaje = mensaje.texto
+                             break
 
-                            
+                             case 'removed':
+                                 usuario.cantidadMensajes--
+                                 usuario.ultimoMensaje = ''
+
+                            if(usuario.cantidadMensajes < 0){
+                                usuario.cantidadMensajes = 0    
                             }
+                            break
+                         }
+                            
                         }
-                    });
+                    })
                 }, () => {
                     this.enviarNotificacion('Ocurrió un error recuperando mensajes sin leer','error')
                 } )
@@ -276,7 +248,6 @@ export default {
         generarChatId (uid1, uid2) {
             return uid1 < uid2 ? `${uid1}-${uid2}` : `${uid2}-${uid1}`
         },
-        // genera la llave entre uid de user selected y sesion
         async  seleccionarUsuario (usuario) {
             this.cid = this.generarChatId(this.usuario.uid, usuario.uid)
 
@@ -292,7 +263,6 @@ export default {
                 // si no existe entonces crea el documento
                     // creacion deñ documento 
                     await db.collection('contactos')
-                    
                             .doc(this.cid)
                             .set({cid: this.cid})
                 }
@@ -351,7 +321,9 @@ export default {
             }
             finally {
                 this.enviandoMensaje = false
-                this.$refs.txtMensaje.focus()
+                this.$nextTick(() => {
+                    this.$refs.txtMensaje.focus()
+                })
             }
         },
         onResize () {
