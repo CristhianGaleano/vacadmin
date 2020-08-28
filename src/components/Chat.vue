@@ -1,10 +1,10 @@
 <template>
-    <v-layout v-resize="onResize">
-         <v-flex xs12 sm4 lg4 class="usuarios" v-if="mostrarLista">
+    <v-layout v-resize="onResize" justify-space-between row>
+         <v-flex xs-12 sm5 md5 lg3 class="usuarios" v-if="mostrarLista">
             <v-card>
                 <v-toolbar color="primary"  dark dense>
                     <v-toolbar-title>
-                        Asesores
+                        Usuarios
                     </v-toolbar-title>
                 </v-toolbar>
                 <v-list two-line class="pa-0 ma-0 scroll-y overflow-y-auto" id="scroll-target" style="max-height: 640px">
@@ -21,6 +21,7 @@
                             <v-list-item-content>
                                 <v-list-item-title v-html="usuario.nombre" class="monster-font"></v-list-item-title>
                                 <v-list-item-subtitle v-html="usuario.ultimoMensaje"></v-list-item-subtitle>
+                              
                             </v-list-item-content>
 
                             <v-list-item-action v-if="usuario.cantidadMensajes > 0">
@@ -28,12 +29,18 @@
                                     <span slot="badge">{{ usuario.cantidadMensajes }}</span>
                                 </v-badge>
                             </v-list-item-action>
+
+                            
+                            
                         </v-list-item>
+
+                        
+
                     </template>
                 </v-list>
             </v-card>
          </v-flex>
-         <v-flex xs12 sm8 lg5 v-if="mostrarChat">
+         <v-flex xs12 sm5 md3 lg5 v-if="mostrarChat">
              <v-container fill-height class="pa-0 ma-0" >
                <v-layout align-end>
                      <v-flex>
@@ -45,6 +52,7 @@
                                         <v-img :src="usuarioSeleccionado.foto" ></v-img>
                                     </v-avatar>
                                     <span class="ml-3" monster-font>{{ usuarioSeleccionado.nombre }}</span>
+                                   
                                 </v-toolbar-title>
                             </v-toolbar>
                             <v-container ref="chatContainer" class="pa-0 ma-0 scroll-y overflow-y-auto" id="scroll-target" style="max-height: 640px">
@@ -57,283 +65,317 @@
                                                 <v-card-text>
                                                     <div>{{item.texto}}</div>
                                                 </v-card-text>
+                                                
                                             </v-card>
+
                                         </v-layout>
                                     </v-flex>
                                </v-card-text>
                             </v-container>
                             <v-card-text >
-                                <v-text-field ref="txtMensaje" v-model="mensaje" @keyup.enter="enviarMensaje" :loading="enviandoMensaje" :disabled="enviandoMensaje" hide-details label="Escribe un mensaje"></v-text-field>
+                                <v-text-field ref="txtMensaje" v-model="mensaje" @keyup.enter="enviarMensaje" :loading="enviandoMensaje" :disabled="enviandoMensaje"  hide-details label="Escribe un mensaje"></v-text-field>
                             </v-card-text>
                          </v-card>
                      </v-flex>
                </v-layout>
              </v-container>
          </v-flex>
+         <!-- column for interes contacts -->
+
+         <v-flex xs12 sm12 md3 lg4>
+        <!-- end interes contacts -->
+        
+             
+         </v-flex>
     </v-layout>
 </template>
 
+
 <script>
+
 import { db } from '@/firebase'
 import uuidv4 from 'uuid/v4'
 
 export default {
     props: ['usuario'],
-
-    data(){
-        return{
+    data () {
+        return {
             usuarios: [],
             usuarioSeleccionado: null,
-            chat:[],
+            chat: [],
             mensaje: '',
             enviandoMensaje: false,
-            cid: null, //Control de usuario
+            cid: null,
             detenerChat: null,
             height: 0
         }
     },
     computed: {
-        //Nos permite declarar variables calculadas
-        esMovil(){
+        esMovil() {
            return this.$vuetify.breakpoint.width < 600
         },
-        mostrarLista(){
-            return  this.usuarios && (!this.esMovil || !this.usuarioSeleccionado)
+        mostrarLista() {
+            return this.usuarios && (!this.esMovil || !this.usuarioSeleccionado)
         },
-        mostrarChat(){
-            return this.usuarios &&  this.usuarioSeleccionado
+        mostrarChat() {
+            return this.usuarios && this.usuarioSeleccionado
         }
     },
     created() {
-      this.consultarUsuarios()  //cuando se carga la parte de JS pero no la de HTML
+        this.consultarUsuarios()
     },
     methods: {
-        onRisize(){
-            this.height = window.innerHeight - 280
+        convertirFecha (timeStamp) {
+            return timeStamp.toDate().toISOString().substring(0,16).replace('T', ' ')
         },
-        convertirFecha(timeStamp){
-            return timeStamp.toDate().toISOString().substring(0, 16).replace('T', ' ')
-        },
-        regresar(){
-            this.usuarioSeleccionado = null
-        },
-        enviarNotificacion(mensaje, color){
-            this.$emit('onNotificacion', {mensaje, color})
-        },
-
-        async seleccionarUsuario(usuario){
-            //Antes de seleccionar debemos validar que el documento existe sino crearalo
-            this.cid = this.generarChatId(this.usuario.uid, usuario.uid)
-
-            try {
-                let doc = await db.collection('contactos')
-                            .doc(this.cid)
-                            .get()
-
-                if(!doc.exists){ //Validar que la relacion entre los usuarios ya exista, sino crearla.
-                    await db.collection('contactos')
-                            .doc(this.cid)
-                            .set({cid: this.cid})
-                }
-            } catch (error) {
-                this.enviarNotificacion('ocurrio un error recuperando la información', 'error')
-            }
-
-            this.usuarioSeleccionado = usuario
-            this.consultarChat()
-        },
-
-        generarChatId(uid1, uid2){//Identificador del contacto
-            return uid1 < uid2 ? `${uid1}-${uid2}` : `${uid2}-${uid1}`
-        },
-
-        consultarChat(){
+        // consulta los mensages para mostrarlos en la gui al seleccionar el user
+        consultarChat () {
             this.chat = []
-
-            if(this.detenerChat){//Validar si debemos detener el chat, uq elo nuevo que hemos escrito en el chat no vaya donde otro usuario.
-                this.detenerChat() //Ejecutar la funcion.
+            // Cada vez que consultemos n nuevo chat, detenemos el anterior
+            // sino es nulo, detenemos en chat anterior
+            if(this.detenerChat){
+                this.detenerChat()
             }
 
-            this.detenerChat=  db.collection('contactos')
-                .doc(this.cid)
-                .collection('chat')
-                .orderBy('fechaEnvio')
-                .onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change =>{ //added, modified, removed
-                        if(change.type == 'added'){
-                            let mensaje = change.doc.data()
-                            this.chat.push(mensaje)
+            this.detenerChat = db.collection('contactosvaca')
+              .doc(this.cid)
+              .collection('chat')
+              .orderBy('fechaEnvio')
+              .onSnapshot(snapshot => {
+                  snapshot.docChanges().forEach(change => {
+                    //   console('Change: '+ change.type)
+                      if(change.type == 'added'){//added, modified, remove
+                      console.log('add mensage: detener - consultar chat')
+                          let mensaje = change.doc.data()
+                          this.chat.push(mensaje)
+                            console.log(mensaje)
+                            // console.log('Comprando:' + mensaje.uid +' : '+ this.usuario.uid)
+                            // analizar
+                             // sino tinene lapropiedad fechaLeido es por que no se ha leido
+                              if (!mensaje.fechaLeido && mensaje.uid !== this.usuario.uid) {
+                              console.log('marcando msj como leido:'+ this.usuario.uid );
+                            //   se encarga de insertar(contactos) y eliminar mensage(usuarios), esta última tiene el escuchador(la collection) para sumar o restar
+                              this.marcarMensajeLeido(mensaje)
+                          }
+                      }
 
-                            if(!mensaje.fechaLeido && mensaje.uid != this.usuario.uid){
-                                this.marcarMensajeLeido(mensaje) //Validacion del ultimo mensaje leido.
-                            }
-                        } //Cuanod agregarmos el mensaje renderizamos y la siguiente instruccion no se logra ejcuta. 
 
-                        this.$nextTick(() => {
-                            if(this.$refs.chatContainer){
-                            this.$refs.chatContainer.scrollTop = 1000000     //Todo el listado de los elmentos referenciados.
-                            }
-                        })
-                    })
-                },
-                () =>{
-                    this.enviarNotificacion('Ocurrió un error al recuperar los mensajes', 'error')
-                })//Escucha los cambios en la collección
+
+                        // El DOM esta actualizado y con  el this esta vinculado a la instancia atual
+                      this.$nextTick(() => {
+                          if(this.$refs.chatContainer){
+                              this.$refs.chatContainer.scrollTop = 100000
+                          }
+                      })
+                  })
+              }, 
+              () => {  
+                  this.enviarNotificacion('Ocurrió un error recuperando los mensajes', 'error')
+              })
+            //   codigo de prueba
+            //   this.chat = [] 
         },
-        marcarMensajeLeido(mensaje){
-            //Marcar el mensaje como leido y borrarlo de los no leidos
-
+        marcarMensajeLeido(mensaje) {
+            // coloca leido en contactos y elimina el mensaje en usuarios: verifcado
             let batch = db.batch()
 
             batch.update(
-                db.collection('contactos')
+                db.collection('contactosvaca')
                     .doc(this.cid)
                     .collection('chat')
+                    // id aleatorio
                     .doc(mensaje.mid),
-                    {fechaLeido: new Date() }
+                    { fechaLeido: new Date() }
             )
+
+            //  se elimina pero lo hace al recibir msj, y el escuchador resta unidad
             batch.delete(
-                db.collection('usuarios')
+                db.collection('usuariosvaca')
                     .doc(this.usuario.uid)
                     .collection('chat-sin-leer')
                     .doc(mensaje.mid)
+                    
             )
 
             batch.commit()
-            //Luego restar la cantidad de mensajes sin leer.
-
         },
-       async  consultarUsuarios (){ //Leer todos los usuarios
+        
+        async consultarUsuarios () {
             try {
-                let docs = await db.collection('usuarios')  //Obtener todos los documetos
-                                .get()
-
-                docs.forEach(doc => {   //ciclo para alamacenara cada documento en un array.
+                // Accede a la colección 'usuarios'
+                let docs = await db.collection('usuariosvaca')
+                                    .get()
+                // Como vamos a obtener todos los documentos entonces get()
+                // recorriendo cada documento
+                docs.forEach(doc => {
                     let usuario = doc.data()
-
-                    if(usuario.uid !== this.usuario.uid){
-                        usuario.cantidadMensajes = 0 //Añadiendo propiedades
-                        usuario.ultimoMensaje = ''  
+                    // add user record to end
+                    
+                    if(usuario.uid !== this.usuario.uid && usuario.rol == 'user'){
+                    // if(usuario.uid !== this.usuario.uid && usuario.rol != 'user'){
+                        // add two properties
+                        console.log('adicionando properties cant text')
+                        usuario.cantidadMensajes = 0
+                        usuario.ultimoMensaje = ''
                         this.usuarios.push(usuario)
                     }
-                });
-
+                })
+                // para leer y mostrar contador
                 this.consultarChatSinLeer()
             } catch (error) {
-                this.enviarNotificacion('Ocurrió un error consultando el listado de contactos', 'error')
+                this.enviarNotificacion('Ocurrió un error al consultar la lista de usuarios', 'error')
             }
         },
 
-        consultarChatSinLeer(){
-            db.collection('usuarios')
+        // aqui lee los mensages sin leer y lo suma
+        consultarChatSinLeer () {
+            // user current
+            db.collection('usuariosvaca')
                 .doc(this.usuario.uid)
                 .collection('chat-sin-leer')
                 .orderBy('fechaEnvio')
                 .onSnapshot( snapshot => {
-                 snapshot.docChanges().forEach(change =>{
-                    let mensaje = change.doc.data()
-                        //Neceitamos recuperar los chat
-                    let usuario = this.usuarios.find(u => u.uid == mensaje.uid) //Expresion lambda donde recorre todo elm array y hace la comparación.
-                    if(usuario){
-                        switch(change.type){
-                            case 'added':
-                                usuario.cantidadMensajes ++
+                    snapshot.docChanges().forEach( change => {//added. modified o remove
+                    // mensage recuperado
+                        let mensaje = change.doc.data()
+                    // todos los mensages estan combinados, se identifica y se suma una unidad
+                        let usuario = this.usuarios.find(u => u.uid == mensaje.uid)
+
+    // sino es nullo
+                        if (usuario) {
+                                
+                         switch(change.type){
+
+                             case 'added':
+                                usuario.cantidadMensajes++
                                 usuario.ultimoMensaje = mensaje.texto
-                                break
-                            case 'removed':
-                                usuario.cantidadMensajes --
-                                usuario.ultimoMensaje = ''
-                                if(usuario.cantidadMensajes < 0){usuario.cantidadMensajes = 0}
+                             break
 
-                                break
+                             case 'removed':
+                                 usuario.cantidadMensajes--
+                                 usuario.ultimoMensaje = ''
 
+                            if(usuario.cantidadMensajes < 0){
+                                usuario.cantidadMensajes = 0    
+                            }
+                            break
+                         }
+                            
                         }
-                    }
-                 })
-                },
-                () =>{
-                    this.enviarNotificacion('Ocurrió un error recuperando los mensajes sin leer', 'error')
-                })
+                    })
+                }, () => {
+                    this.enviarNotificacion('Ocurrió un error recuperando mensajes sin leer','error')
+                } )
         },
-        async enviarMensaje(){
-            //Validar que no se envie mensaje vacio o que no se este enviando mensaje.
-            if(!this.mensaje || this.enviandoMensaje){ return }
+        enviarNotificacion (mensaje, color) {
+            // se envia al padre(este debe estar escuchando): nombre del evento y el objeto
+            this.$emit('onNotificacion', { mensaje, color })
+        },
+        generarChatId (uid1, uid2) {
+            return uid1 < uid2 ? `${uid1}-${uid2}` : `${uid2}-${uid1}`
+        },
+        async  seleccionarUsuario (usuario) {
+            this.cid = this.generarChatId(this.usuario.uid, usuario.uid)
 
-            this.enviandoMensaje = true;
-             let mid = uuidv4()
+            try {
+                // await para garantizar que la consulta termine antes de preguntar si el usuario existe
+                // Accede a la colección 'contactos
+                // obtiene el documento con el id en 'cid'
+                let doc = await db.collection('contactosvaca')
+                            .doc(this.cid)
+                            .get()
 
-             let mensajeEnviado = { //Objeto para almacenar el documento a recuperar.
-                mid,
-                texto : this.mensaje,
-                fechaEnvio: new Date(),
-                uid: this.usuario.uid //Usuario que envia
+                if(!doc.exists){
+                // si no existe entonces crea el documento
+                    // creacion el documento 
+                    await db.collection('contactosvaca')
+                            .doc(this.cid)
+                            .set({cid: this.cid})
+                }
+
+                this.usuarioSeleccionado = usuario
+                this.consultarChat() 
+            } catch (error) {
+                this.enviarNotificacion('Ocurrió un error recuperando la información','error')
             }
+        },
+        regresar () {
+            this.usuarioSeleccionado = null
+            this.cid = null
+        },
+        async enviarMensaje () {
+            if(!this.mensaje  || this.enviandoMensaje) { return }
 
-            let batch = db.batch() //Crea un objeto donde se alamacena varias instrucciones y luego se ejecuto todo(lote)
-                          
-            batch.set(
-                await db.collection('contactos')
-                .doc(this.cid)
-                .collection('chat')
-                .doc(mid), //Identificaador del documento
-                mensajeEnviado
-            )
+            this.enviandoMensaje = true
 
+            let mid = uuidv4()
+
+            // Objeto que nos define el documento que almacenaremos
+            let mensajeEnviado = {
+                mid,
+                texto: this.mensaje,
+                fechaEnvio: new Date(),
+                uid: this.usuario.uid
+            }
+            
+            // Procesamiento por lotes(o todo se guarda o nada)
+            let batch = db.batch()
+            // la lista del chat
             batch.set(
-                await db.collection('usuarios')
-                .doc(this.usuarioSeleccionado.uid)
-                .collection('chat-sin-leer')
-                .doc(mid),
-                mensajeEnviado
-            )
-               /*await db.collection('contactos')
+                db.collection('contactosvaca')
                         .doc(this.cid)
                         .collection('chat')
-                        .doc(mid) //Identificaador del documento
-                        .set(mensajeEnviado) //
+                        .doc(mid),
+                        mensajeEnviado
+            )
 
-                await db.collection('usuarios')
+            // lista general
+            batch.set(
+                db.collection('usuariosvaca')
                         .doc(this.usuarioSeleccionado.uid)
                         .collection('chat-sin-leer')
-                        .doc(mid)
-                        .set(mensajeEnviado)    //Agregando el mensaje recien envia a la colleccion de mensajes sin leer.
-               */
-              
+                        .doc(mid),
+                        mensajeEnviado
+            )
 
-            try {//Una vez que tenemos el ID de documento creado
-               //Para almacenar e mensaje
-                await batch.commit() //Ejecutar las instrucciones Batch
-
-                 this.mensaje = ''
+            try {
+                
+                await batch.commit()
+                
+                this.mensaje = ''
             } catch (error) {
-                this.enviarNotificacion('Ocurrio un error enviando el mensaje, Inténtelo nuevamnete!', 'error')
+                this.enviarNotificacion('Ocurrió un error enviando el mensaje. Intentalo de nuevo', 'error')
             }
-            finally{
+            finally {
                 this.enviandoMensaje = false
-                this.$nextTick(() => { //Sirve para esperar qur se actualice la interfaz
+                this.$nextTick(() => {
                     this.$refs.txtMensaje.focus()
                 })
             }
+        },
+        onResize () {
+            this.height = window.innerHeight - 150
         }
     },
 }
 </script>
 
 <style>
+    .usuarios {
+        background-color: #ddffdd;
+    }
 
     .usuario-seleccionado {
-        background-color: #bad2ff;
+        background-color:  rgba(83, 11, 11, 0.767);
     }
-    .usuarios{
-        background-color: #dfdfdf;
+
+    .chat-mensaje {
+        border-radius: 10px;
     }
-    .chat-mensaje{
-        border-radius: 10px;        
-    }
-    .chat-fecha{
-        font-size:  0.8rem;
+
+    .chat-fecha {
+        font-size: 0.8rem;
         margin: 3px;
         color: #929292;
     }
-
 </style>

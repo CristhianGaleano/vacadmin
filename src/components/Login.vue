@@ -1,4 +1,3 @@
-// https://www.youtube.com/watch?v=GLQ76DfRBDE reglas de firestore
 <template>
     <v-layout justify-center align-center>
         <v-flex xs12 sm8 md6 lg5 xl4>
@@ -66,7 +65,7 @@ export default {
                 // get iud del user
                  let uid = auth.currentUser.uid 
                 //  acces for document on BD
-                let doc = await db.collection('usuarios')
+                let doc = await db.collection('usuariosvaca')
                                 .doc(uid)
                                 .get()
                 if(doc.exists){
