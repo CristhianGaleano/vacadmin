@@ -200,26 +200,43 @@ export default {
             batch.commit()
         },
         
+        // Lee los usuarios 
         async consultarUsuarios () {
             try {
-                // Accede a la colección 'usuarios'
-                let docs = await db.collection('usuariosvaca')
-                                    .get()
-                // Como vamos a obtener todos los documentos entonces get()
-                // recorriendo cada documento
-                docs.forEach(doc => {
-                    let usuario = doc.data()
-                    // add user record to end
-                    
-                    if(usuario.uid !== this.usuario.uid && usuario.rol == 'user'){
-                    // if(usuario.uid !== this.usuario.uid && usuario.rol != 'user'){
-                        // add two properties
-                        console.log('adicionando properties cant text')
-                        usuario.cantidadMensajes = 0
-                        usuario.ultimoMensaje = ''
-                        this.usuarios.push(usuario)
-                    }
+                // recuperar cada usuario y adicionarle las propiedades, no sin antes dejar la collecion a la escucha de eventos
+                db.collection('usuariosvaca')
+                .onSnapshot( snapshot => {
+                    snapshot.docChanges().forEach( change => {
+
+                        let usuario = change.doc.data()
+
+                        if (usuario.uid !== this.usuario.uid && usuario.rol == 'user') {
+                             console.log('adicionando properties cant text')
+                            usuario.cantidadMensajes = 0
+                            usuario.ultimoMensaje = ''
+                            this.usuarios.push(usuario)
+                        }
+                    } )
                 })
+                
+                // // Accede a la colección 'usuarios'
+                // let docs = await db.collection('usuariosvaca')
+                //                     .get()
+                // // Como vamos a obtener todos los documentos entonces get()
+                // // recorriendo cada documento
+                // docs.forEach(doc => {
+                //     let usuario = doc.data()
+                //     // add user record to end
+                    
+                //     if(usuario.uid !== this.usuario.uid && usuario.rol == 'user'){
+                //     // if(usuario.uid !== this.usuario.uid && usuario.rol != 'user'){
+                //         // add two properties
+                //         console.log('adicionando properties cant text')
+                //         usuario.cantidadMensajes = 0
+                //         usuario.ultimoMensaje = ''
+                //         this.usuarios.push(usuario)
+                //     }
+                // })
                 // para leer y mostrar contador
                 this.consultarChatSinLeer()
             } catch (error) {
@@ -227,7 +244,7 @@ export default {
             }
         },
 
-        // aqui lee los mensages sin leer y lo suma
+        // aqui lee los mensages sin leer y lo suma, pero con respecto al usuario de la sesion
         consultarChatSinLeer () {
             // user current
             db.collection('usuariosvaca')
