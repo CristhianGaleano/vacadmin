@@ -111,6 +111,10 @@ export default {
         }
     },
     computed: {
+        // filtroUsuarios(){
+        //     return this.usuarios.reverse()
+        // }
+        // ,
         esMovil() {
            return this.$vuetify.breakpoint.width < 600
         },
@@ -200,7 +204,7 @@ export default {
             batch.commit()
         },
         
-        // Lee los usuarios 
+        // Lee los usuarios, estos seran mostrados en el panel left
         async consultarUsuarios () {
             try {
                 // recuperar cada usuario y adicionarle las propiedades, no sin antes dejar la collecion a la escucha de eventos
@@ -214,7 +218,7 @@ export default {
                              console.log('adicionando properties cant text')
                             usuario.cantidadMensajes = 0
                             usuario.ultimoMensaje = ''
-                            this.usuarios.push(usuario)
+                            this.usuarios.unshift(usuario)
                         }
                     } )
                 })

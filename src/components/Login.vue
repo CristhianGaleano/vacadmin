@@ -16,6 +16,11 @@
                         <v-btn @click="ingresar" color="secondary">Ingresar</v-btn>
                     </v-layout>
                 </v-card-text>
+                <v-card-text v-if="cantidadPassw != 0 && cantidadPassw < 6">
+                    <p>
+                        La cantidad de caracteres debe ser igual o superior a 6
+                    </p>
+                </v-card-text>
             </v-card>
         </v-flex>
     </v-layout>
@@ -33,7 +38,14 @@ export default {
             password: ''
         }
     },
-    
+    computed: {
+        cantidadEmail: function() {
+            return this.email.length;
+        },
+        cantidadPassw: function() {
+            return this.password.length;
+        }
+    },
     methods: {
         executeLogout () {
             auth.signOut()
