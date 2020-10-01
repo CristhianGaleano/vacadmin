@@ -109,7 +109,7 @@ export default {
             cid: null,
             detenerChat: null,
             height: 0,
-            audio:  new Audio('./assets/new-mjs.mp3')
+            audio:  new Audio('https://www.ucp.edu.co/portal/wp-content/uploads/2020/10/new-msj.mp3')
         }
     },
     computed: {
@@ -272,10 +272,15 @@ export default {
                              case 'added':
                                 usuario.cantidadMensajes++
                                 usuario.ultimoMensaje = mensaje.texto
-                                this.audio.play();
+                                try {
+                                    this.audio.play();
+                                    
+                                } catch (error) {
+                                    console.log(error)
+                                }
                                  Push.create('Tienes un nuevo mensaje por leer', {
                                     body: 'Desde Ventanilla Académica',
-                                    icon: './assets/logo-vigi-black.png',
+                                    icon: 'https://www.ucp.edu.co/portal/wp-content/uploads/2020/10/logo-vigi-black.png',
                                     timeout: 32000
                                 })
                              break
