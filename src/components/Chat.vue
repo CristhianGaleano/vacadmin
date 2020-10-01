@@ -95,6 +95,7 @@
 
 import { db } from '@/firebase'
 import uuidv4 from 'uuid/v4'
+import Push  from 'push.js';
 
 export default {
     props: ['usuario'],
@@ -108,7 +109,7 @@ export default {
             cid: null,
             detenerChat: null,
             height: 0,
-            audio:  new Audio('http://soundbible.com/mp3/Air Plane Ding-SoundBible.com-496729130.mp3')
+            audio:  new Audio('./assets/new-mjs.mp3')
         }
     },
     computed: {
@@ -272,6 +273,11 @@ export default {
                                 usuario.cantidadMensajes++
                                 usuario.ultimoMensaje = mensaje.texto
                                 this.audio.play();
+                                 Push.create('Tienes un nuevo mensaje por leer', {
+                                    body: 'Desde Ventanilla Académica',
+                                    icon: './assets/logo-vigi-black.png',
+                                    timeout: 32000
+                                })
                              break
 
                              case 'removed':
