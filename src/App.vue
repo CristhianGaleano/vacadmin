@@ -25,13 +25,13 @@
 
     </v-app-bar>
 
-    <v-content>
+    <v-main>
       <v-container fluid fill-height class="fondo">
         <!-- this tags reciben data del component hijo -->
         <Login v-show="!usuario" ref="childRef" @onNotificacion="mostrarNotificacion" @onIngresar="ingresar"/>
         <Chat v-if="usuario" @onNotificacion="mostrarNotificacion" :usuario="usuario" />
       </v-container>
-    </v-content>
+    </v-main>
 
     <v-snackbar v-model="notificacion.visible" :color="notificacion.color" multi-line top :timeout="6000" dark>
       <span>{{ notificacion.mensaje }}</span>

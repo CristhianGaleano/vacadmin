@@ -128,7 +128,8 @@ export default {
     },
     methods: {
         convertirFecha (timeStamp) {
-            return timeStamp.toDate().toISOString().substring(0,16).replace('T', ' ')
+            // return timeStamp.toDate().toISOString().substring(0,16).replace('T', ' ')
+            return timeStamp.toDate().toString().substring(0,24)
         },
         // consulta los mensages para mostrarlos en la gui al seleccionar el user
         consultarChat () {
