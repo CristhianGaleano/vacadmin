@@ -40,7 +40,7 @@
                 </v-list>
             </v-card>
          </v-flex>
-         <v-flex xs12 sm5 md3 lg5 v-if="mostrarChat">
+         <v-flex xs12 sm4 md4 lg7 v-if="mostrarChat">
              <v-container fill-height class="pa-0 ma-0" >
                <v-layout align-end>
                      <v-flex>
@@ -82,11 +82,7 @@
          </v-flex>
          <!-- column for interes contacts -->
 
-         <v-flex xs12 sm12 md3 lg4>
-        <!-- end interes contacts -->
-        
-             
-         </v-flex>
+     
     </v-layout>
 </template>
 
